@@ -8,6 +8,10 @@ class Server(BaseModel):
     environment: str
     status: str
 
+    model_config = {
+        "from_attributes": True
+    }
+
 
 class ServerCreate(BaseModel):
     name: str
@@ -17,8 +21,7 @@ class ServerCreate(BaseModel):
 
 
 class ServerUpdate(BaseModel):
-    name: str
-    ip: str
-    environment: str
-    status: str
-    
+    name: str | None = None
+    ip: str | None = None
+    environment: str | None = None
+    status: str | None = None

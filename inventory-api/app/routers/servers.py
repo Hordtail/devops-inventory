@@ -1,5 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
+from app.database import get_db
+from app.db_models import ServerDB
 from app.models import Server, ServerCreate, ServerUpdate
 
 
@@ -9,28 +12,9 @@ router = APIRouter(
 )
 
 
-servers: list[Server] = [
-    Server(
-        id=1,
-        name="web-01",
-        ip="192.168.1.10",
-        environment="production",
-        status="running",
-    ),
-    Server(
-        id=2,
-        name="db-01",
-        ip="192.168.1.20",
-        environment="production",
-        status="running",
-    ),
-]
-
-
 @router.get("/", response_model=list[Server])
-def get_servers():
-    return servers
-
+def get_servers(db: Session = Depends(get_db)):
+    return db.query(ServerDB).all()
 
 @router.get("/{server_id}", response_model=Server)
 def get_server(server_id: int):
@@ -44,47 +28,75 @@ def get_server(server_id: int):
     )
 
 
-@router.post("/", response_model=Server, status_code=201)
-def create_server(server_data: ServerCreate):
-    new_id = max((server.id for server in servers), default=0) + 1
-
-    new_server = Server(
-        id=new_id,
-        **server_data.model_dump(),
+@router.post("/", response_model=Server)
+def create_server(
+    server: ServerCreate,
+    db: Session = Depends(get_db),
+):
+    db_server = ServerDB(
+        name=server.name,
+        ip=server.ip,
+        environment=server.environment,
+        status=server.status,
     )
 
-    servers.append(new_server)
+    db.add(db_server)
+    db.commit()
+    db.refresh(db_server)
 
-    return new_server
-
+    return db_server
 
 @router.put("/{server_id}", response_model=Server)
-def update_server(server_id: int, server_data: ServerUpdate):
-    for index, server in enumerate(servers):
-        if server.id == server_id:
-            updated_server = Server(
-                id=server_id,
-                **server_data.model_dump(),
-            )
+def update_server(
+    server_id: int,
+    server_data: ServerUpdate,
+    db: Session = Depends(get_db),
+):
+    db_server = db.query(ServerDB).filter(
+        ServerDB.id == server_id
+    ).first()
 
-            servers[index] = updated_server
+    if db_server is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Server not found",
+        )
 
-            return updated_server
+    if server_data.name is not None:
+        db_server.name = server_data.name
 
-    raise HTTPException(
-        status_code=404,
-        detail="Server not found",
-    )
+    if server_data.ip is not None:
+        db_server.ip = server_data.ip
 
+    if server_data.environment is not None:
+        db_server.environment = server_data.environment
 
-@router.delete("/{server_id}", status_code=204)
-def delete_server(server_id: int):
-    for index, server in enumerate(servers):
-        if server.id == server_id:
-            servers.pop(index)
-            return
+    if server_data.status is not None:
+        db_server.status = server_data.status
 
-    raise HTTPException(
-        status_code=404,
-        detail="Server not found",
-    )
+    db.commit()
+    db.refresh(db_server)
+
+    return db_server
+
+@router.delete("/{server_id}")
+def delete_server(
+    server_id: int,
+    db: Session = Depends(get_db),
+):
+    db_server = db.query(ServerDB).filter(
+        ServerDB.id == server_id
+    ).first()
+
+    if db_server is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Server not found",
+        )
+
+    db.delete(db_server)
+    db.commit()
+
+    return {
+        "message": "Server deleted successfully"
+    }

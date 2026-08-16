@@ -7,6 +7,7 @@ class Server(BaseModel):
     ip: str
     environment: str
     status: str
+    location: str | None = None
 
     model_config = {
         "from_attributes": True
@@ -18,6 +19,7 @@ class ServerCreate(BaseModel):
     ip: str
     environment: str
     status: str = "running"
+    location: str | None = None
 
 
 class ServerUpdate(BaseModel):
@@ -25,3 +27,4 @@ class ServerUpdate(BaseModel):
     ip: str | None = None
     environment: str | None = None
     status: str | None = None
+    location: str | None = None

@@ -32,3 +32,8 @@ class ServerDB(Base):
         nullable=False,
         default="running",
     )
+
+    location: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )

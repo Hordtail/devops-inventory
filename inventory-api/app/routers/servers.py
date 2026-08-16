@@ -74,6 +74,9 @@ def update_server(
     if server_data.status is not None:
         db_server.status = server_data.status
 
+    if server_data.location is not None:
+        db_server.location = server_data.location
+
     db.commit()
     db.refresh(db_server)
 

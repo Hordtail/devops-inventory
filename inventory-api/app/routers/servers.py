@@ -40,11 +40,11 @@ def create_server(
 ):
     db_server = ServerDB(
     name=server.name,
-    ip=server.ip,
-    environment=server.environment,
-    status=server.status,
+    ip=str(server.ip),
+    environment=server.environment.value,
+    status=server.status.value,
     location=server.location,
-    )
+)
 
     db.add(db_server)
     db.commit()
@@ -72,13 +72,13 @@ def update_server(
         db_server.name = server_data.name
 
     if server_data.ip is not None:
-        db_server.ip = server_data.ip
+        db_server.ip = str(server_data.ip)
 
     if server_data.environment is not None:
-        db_server.environment = server_data.environment
+        db_server.environment = server_data.environment.value
 
     if server_data.status is not None:
-        db_server.status = server_data.status
+        db_server.status = server_data.status.value
 
     if server_data.location is not None:
         db_server.location = server_data.location

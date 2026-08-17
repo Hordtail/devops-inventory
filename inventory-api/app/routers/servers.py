@@ -17,16 +17,21 @@ def get_servers(db: Session = Depends(get_db)):
     return db.query(ServerDB).all()
 
 @router.get("/{server_id}", response_model=Server)
-def get_server(server_id: int):
-    for server in servers:
-        if server.id == server_id:
-            return server
+def get_server(
+    server_id: int,
+    db: Session = Depends(get_db),
+):
+    db_server = db.query(ServerDB).filter(
+        ServerDB.id == server_id
+    ).first()
 
-    raise HTTPException(
-        status_code=404,
-        detail="Server not found",
-    )
+    if db_server is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Server not found",
+        )
 
+    return db_server
 
 @router.post("/", response_model=Server)
 def create_server(
@@ -34,10 +39,11 @@ def create_server(
     db: Session = Depends(get_db),
 ):
     db_server = ServerDB(
-        name=server.name,
-        ip=server.ip,
-        environment=server.environment,
-        status=server.status,
+    name=server.name,
+    ip=server.ip,
+    environment=server.environment,
+    status=server.status,
+    location=server.location,
     )
 
     db.add(db_server)

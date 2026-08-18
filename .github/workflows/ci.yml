@@ -80,10 +80,15 @@ jobs:
         run: |
           docker build -t inventory-api:test ./inventory-api
 
-  compose:
+    compose:
     runs-on: ubuntu-latest
 
     needs: test
+
+    env:
+      POSTGRES_DB: inventory
+      POSTGRES_USER: devops
+      POSTGRES_PASSWORD: devops
 
     steps:
       - name: Checkout repository
@@ -91,30 +96,39 @@ jobs:
 
       - name: Start Docker Compose
         working-directory: inventory-api
-        env:
-          POSTGRES_DB: inventory
-          POSTGRES_USER: devops
-          POSTGRES_PASSWORD: devops
         run: |
-          docker compose up -d --build
+            docker compose up -d --build
 
       - name: Check containers
         working-directory: inventory-api
         run: |
           docker compose ps
 
-      - name: Test API
+      - name: Wait for API
         run: |
-          curl --fail http://localhost:8000/health
+          for i in {1..30}; do
+            if curl --fail --silent http://localhost:8000/health; then
+              echo
+              echo "API is ready"
+              exit 0
+            fi
+
+            echo "Waiting for API... attempt $i/30"
+            sleep 2
+          done
+
+          echo "API did not become ready"
+          exit 1
 
       - name: Test servers endpoint
         run: |
-          curl --fail http://localhost:8000/servers/
+          curl --fail --silent http://localhost:8000/servers/
 
-      - name: Show logs on failure
-        if: failure()
+      - name: Show logs
+        if: always()
         working-directory: inventory-api
         run: |
+          docker compose ps
           docker compose logs
 
       - name: Stop Docker Compose

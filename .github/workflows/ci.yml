@@ -79,3 +79,46 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t inventory-api:test ./inventory-api
+
+  compose:
+    runs-on: ubuntu-latest
+
+    needs: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Start Docker Compose
+        working-directory: inventory-api
+        env:
+          POSTGRES_DB: inventory
+          POSTGRES_USER: devops
+          POSTGRES_PASSWORD: devops
+        run: |
+          docker compose up -d --build
+
+      - name: Check containers
+        working-directory: inventory-api
+        run: |
+          docker compose ps
+
+      - name: Test API
+        run: |
+          curl --fail http://localhost:8000/health
+
+      - name: Test servers endpoint
+        run: |
+          curl --fail http://localhost:8000/servers/
+
+      - name: Show logs on failure
+        if: failure()
+        working-directory: inventory-api
+        run: |
+          docker compose logs
+
+      - name: Stop Docker Compose
+        if: always()
+        working-directory: inventory-api
+        run: |
+          docker compose down -v

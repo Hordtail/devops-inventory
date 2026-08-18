@@ -60,3 +60,22 @@ jobs:
           DATABASE_URL: postgresql+psycopg://devops:devops@localhost:5432/inventory
         run: |
           alembic check
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql+psycopg://devops:devops@localhost:5432/inventory
+        run: |
+          pytest
+
+  docker:
+    runs-on: ubuntu-latest
+
+    needs: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Build Docker image
+        run: |
+          docker build -t inventory-api:test ./inventory-api

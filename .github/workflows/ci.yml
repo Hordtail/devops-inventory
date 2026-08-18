@@ -80,7 +80,7 @@ jobs:
         run: |
           docker build -t inventory-api:test ./inventory-api
 
-    compose:
+  compose:
     runs-on: ubuntu-latest
 
     needs: test

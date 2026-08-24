@@ -1,0 +1,30 @@
+---
+- name: Bootstrap Raspberry Pi
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Ensure required packages are installed
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - git
+        state: present
+        update_cache: true
+
+    - name: Ensure Docker service is enabled and running
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Show hostname
+      ansible.builtin.command:
+        cmd: hostname
+      register: hostname_result
+      changed_when: false
+
+    - name: Display hostname
+      ansible.builtin.debug:
+        msg: "Managed host: {{ hostname_result.stdout }}"

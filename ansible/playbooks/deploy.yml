@@ -1,0 +1,49 @@
+---
+- name: Deploy Inventory API
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Ensure application directory exists
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: brais
+        group: brais
+        mode: "0755"
+
+    - name: Copy production Compose file
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../inventory-api/docker-compose.prod.yml"
+        dest: "{{ app_dir }}/docker-compose.prod.yml"
+        owner: brais
+        group: brais
+        mode: "0644"
+
+    - name: Pull application images
+      become_user: brais
+      ansible.builtin.command:
+        cmd: docker compose -f docker-compose.prod.yml pull
+        chdir: "{{ app_dir }}"
+      register: compose_pull
+      changed_when: "'Downloaded' in compose_pull.stdout or 'Pulled' in compose_pull.stdout"
+
+    - name: Start application
+      become_user: brais
+      ansible.builtin.command:
+        cmd: docker compose -f docker-compose.prod.yml up -d
+        chdir: "{{ app_dir }}"
+      register: compose_up
+      changed_when: "'Started' in compose_up.stdout or 'Recreated' in compose_up.stdout"
+
+    - name: Show application status
+      become_user: brais
+      ansible.builtin.command:
+        cmd: docker compose -f docker-compose.prod.yml ps
+        chdir: "{{ app_dir }}"
+      register: compose_status
+      changed_when: false
+
+    - name: Display application status
+      ansible.builtin.debug:
+        var: compose_status.stdout_lines

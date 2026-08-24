@@ -1,0 +1,9 @@
+---
+- name: Configure Inventory infrastructure
+  hosts: all
+  become: true
+
+  roles:
+    - common
+    - docker
+    - inventory

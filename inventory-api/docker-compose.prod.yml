@@ -51,4 +51,4 @@ services:
       start_period: 10s
 
 volumes:
-  - postgres_data:/var/lib/postgresql
+  postgres_data:

@@ -1,0 +1,8 @@
+---
+app_dir: /home/brais/inventory
+
+ghcr_owner: hordtail
+image_tag: latest
+
+postgres_db: inventory
+postgres_user: devops

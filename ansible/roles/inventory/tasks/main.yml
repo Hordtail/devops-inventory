@@ -15,6 +15,28 @@
     group: brais
     mode: "0644"
 
+- name: Create application environment file
+  ansible.builtin.copy:
+    dest: "{{ app_dir }}/.env"
+    owner: brais
+    group: brais
+    mode: "0600"
+    content: |
+      POSTGRES_DB={{ postgres_db }}
+      POSTGRES_USER={{ postgres_user }}
+      POSTGRES_PASSWORD={{ vault_postgres_password }}
+      GHCR_OWNER={{ ghcr_owner }}
+      IMAGE_TAG={{ image_tag }}
+      
+- name: Log in to GitHub Container Registry
+  become_user: brais
+  ansible.builtin.shell:
+    cmd: |
+      echo '{{ vault_ghcr_token }}' | docker login ghcr.io \
+        --username '{{ vault_ghcr_username }}' \
+        --password-stdin
+  no_log: true
+
 - name: Pull application images
   become_user: brais
   ansible.builtin.command:
@@ -42,3 +64,4 @@
 - name: Display application status
   ansible.builtin.debug:
     var: compose_status.stdout_lines
+

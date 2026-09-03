@@ -1,0 +1,54 @@
+---
+- name: Ensure monitoring directory exists
+  ansible.builtin.file:
+    path: "{{ monitoring_dir }}"
+    state: directory
+    owner: brais
+    group: brais
+    mode: "0755"
+
+- name: Run Node Exporter
+  become_user: brais
+  community.docker.docker_container:
+    name: node-exporter
+    image: prom/node-exporter:latest
+    state: started
+    restart_policy: unless-stopped
+    network_mode: host
+    pid_mode: host
+    volumes:
+      - "/:/host:ro,rslave"
+    command:
+      - "--path.rootfs=/host"
+- name: Ensure Prometheus directory exists
+  ansible.builtin.file:
+    path: "{{ monitoring_dir }}/prometheus"
+    state: directory
+    owner: brais
+    group: brais
+    mode: "0755"
+
+- name: Render Prometheus configuration
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ monitoring_dir }}/prometheus/prometheus.yml"
+    owner: brais
+    group: brais
+    mode: "0644"
+  notify: Restart Prometheus
+
+- name: Render monitoring Compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ monitoring_dir }}/docker-compose.yml"
+    owner: brais
+    group: brais
+    mode: "0644"
+
+- name: Start monitoring stack
+  become_user: brais
+  ansible.builtin.command:
+    cmd: docker compose -f docker-compose.yml up -d
+    chdir: "{{ monitoring_dir }}"
+  register: monitoring_compose
+  changed_when: "'Started' in monitoring_compose.stdout or 'Created' in monitoring_compose.stdout or 'Recreated' in monitoring_compose.stdout"

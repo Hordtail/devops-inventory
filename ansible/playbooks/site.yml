@@ -3,7 +3,11 @@
   hosts: all
   become: true
 
+  vars_files:
+    - ../inventory/group_vars/vault.yml
+
   roles:
     - common
     - docker
     - inventory
+    - monitoring

@@ -2,9 +2,14 @@ from fastapi import FastAPI
 from fastapi.responses import Response
 
 from app.metrics.prometheus import (
+    http_request_duration_seconds,
     http_requests_total,
+    http_responses_total,
     metrics_response,
 )
+
+import time
+
 from app.routers.servers import router as servers_router
 
 
@@ -17,7 +22,11 @@ app = FastAPI(
 
 @app.middleware("http")
 async def metrics_middleware(request, call_next):
+    start_time = time.perf_counter()
+
     response = await call_next(request)
+
+    duration = time.perf_counter() - start_time
 
     if request.url.path != "/metrics":
         http_requests_total.labels(
@@ -25,8 +34,18 @@ async def metrics_middleware(request, call_next):
             endpoint=request.url.path,
         ).inc()
 
-    return response
+        http_responses_total.labels(
+            method=request.method,
+            endpoint=request.url.path,
+            status_code=response.status_code,
+        ).inc()
 
+        http_request_duration_seconds.labels(
+            method=request.method,
+            endpoint=request.url.path,
+        ).observe(duration)
+
+    return response
 
 @app.get("/health")
 def health():

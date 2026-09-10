@@ -66,5 +66,8 @@ def metrics():
         media_type=content_type.split(";")[0],
     )
 
+@app.get("/version")
+def version():
+    return {"version": app.version}
 
 app.include_router(servers_router)

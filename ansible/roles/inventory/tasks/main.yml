@@ -78,3 +78,16 @@
   retries: 30
   delay: 5
 
+- name: Wait for Inventory frontend health check
+  become_user: brais
+  ansible.builtin.uri:
+    url: http://127.0.0.1:8080/health
+    method: GET
+    status_code: 200
+    return_content: false
+    timeout: 5
+  register: inventory_frontend_health
+  until: inventory_frontend_health.status | default(0) == 200
+  retries: 30
+  delay: 5
+

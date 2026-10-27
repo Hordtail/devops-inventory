@@ -87,9 +87,11 @@ def test_update_item(client):
         "code": "BELT-002",
         "name": "Replacement belt",
         "unit": "each",
+        "description": None,
         "active": False,
         "quantity_available": 0,
         "minimum_stock": 1,
+        "image_path": None,
     }
 
 

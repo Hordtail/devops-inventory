@@ -16,6 +16,7 @@ def test_item_create_accepts_valid_fields_and_defaults_active():
         "code": "BRK-001",
         "name": "Brake pad",
         "unit": "pcs",
+        "description": None,
         "active": True,
         "minimum_stock": 1,
     }

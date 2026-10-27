@@ -11,6 +11,7 @@ from app.metrics.prometheus import (
 import time
 
 from app.routers.servers import router as servers_router
+from app.routers.items import router as items_router
 
 
 app = FastAPI(
@@ -71,3 +72,4 @@ def version():
     return {"version": app.version}
 
 app.include_router(servers_router)
+app.include_router(items_router)

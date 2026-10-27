@@ -1,35 +1,28 @@
 from uuid import uuid4
 
-from fastapi.testclient import TestClient
 
-from app.main import app
-
-
-client = TestClient(app)
-
-
-def test_health():
+def test_health(client):
     response = client.get("/health")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
-def test_root():
+def test_root(client):
     response = client.get("/")
 
     assert response.status_code == 200
     assert response.json() == {"message": "DevOps Inventory API"}
 
 
-def test_get_servers():
+def test_get_servers(client):
     response = client.get("/servers/")
 
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
 
-def test_create_get_update_delete_server():
+def test_create_get_update_delete_server(client):
     unique_name = f"test-server-{uuid4().hex[:8]}"
 
     # CREATE
@@ -102,14 +95,14 @@ def test_create_get_update_delete_server():
     assert response.status_code == 404
 
 
-def test_get_nonexistent_server():
+def test_get_nonexistent_server(client):
     response = client.get("/servers/999999999")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Server not found"
 
 
-def test_invalid_status():
+def test_invalid_status(client):
     response = client.post(
         "/servers/",
         json={

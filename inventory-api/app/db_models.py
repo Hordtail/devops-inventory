@@ -84,6 +84,16 @@ class ItemDB(Base):
         nullable=False,
     )
 
+    description: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    image_path: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
     quantity_available: Mapped[int] = mapped_column(
         Integer,
         nullable=False,

@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse
+from sqlalchemy import desc
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.db_models import ItemDB
+from app.db_models import ItemDB, StockMovementDB
 from app.models import (
     Item,
     ItemCreate,
@@ -18,6 +20,14 @@ from app.services.stock import (
     InvalidMovementTypeError,
     ItemNotFoundError,
     register_stock_movement,
+)
+from app.services.item_images import (
+    MAX_IMAGE_BYTES,
+    InvalidImageError,
+    delete_stored_image,
+    media_type_for_image,
+    resolve_stored_image,
+    store_item_image,
 )
 
 
@@ -66,6 +76,8 @@ def update_item(
     db_item.name = item_data.name
     db_item.unit = item_data.unit
     db_item.active = item_data.active
+    if "description" in item_data.model_fields_set:
+        db_item.description = item_data.description
     if item_data.minimum_stock is not None:
         db_item.minimum_stock = item_data.minimum_stock
 
@@ -124,6 +136,7 @@ def create_item(
         unit=item.unit,
         active=item.active,
         minimum_stock=item.minimum_stock,
+        description=item.description,
     )
 
     db.add(db_item)
@@ -147,6 +160,97 @@ def create_item(
 
     db.refresh(db_item)
     return db_item
+
+
+@router.get(
+    "/{item_id}/movements",
+    response_model=list[StockMovement],
+)
+def get_item_movements(
+    item_id: int,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
+    item_exists = db.query(ItemDB.id).filter(ItemDB.id == item_id).first()
+    if item_exists is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    return (
+        db.query(StockMovementDB)
+        .filter(StockMovementDB.item_id == item_id)
+        .order_by(desc(StockMovementDB.occurred_at), desc(StockMovementDB.id))
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+
+@router.get("/{item_id}/image")
+def get_item_image(item_id: int, db: Session = Depends(get_db)):
+    db_item = db.query(ItemDB).filter(ItemDB.id == item_id).first()
+    if db_item is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+    if not db_item.image_path:
+        raise HTTPException(status_code=404, detail="Item has no image")
+
+    try:
+        image_path = resolve_stored_image(db_item.image_path)
+        media_type = media_type_for_image(db_item.image_path)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Image not found") from None
+
+    if not image_path.is_file():
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(image_path, media_type=media_type)
+
+
+@router.post("/{item_id}/image", response_model=Item)
+def upload_item_image(
+    item_id: int,
+    image: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    db_item = db.query(ItemDB).filter(ItemDB.id == item_id).first()
+    if db_item is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    try:
+        image_data = image.file.read(MAX_IMAGE_BYTES + 1)
+        if len(image_data) > MAX_IMAGE_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail="Image exceeds the 5 MiB limit",
+            )
+        try:
+            image_reference, _media_type = store_item_image(image_data)
+        except InvalidImageError as error:
+            status_code = (
+                413
+                if "exceeds" in str(error).lower()
+                or "too large" in str(error).lower()
+                else 415
+            )
+            raise HTTPException(status_code=status_code, detail=str(error)) from error
+
+        old_image_reference = db_item.image_path
+        db_item.image_path = image_reference
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+            delete_stored_image(image_reference)
+            raise HTTPException(
+                status_code=500,
+                detail="Unable to save item image",
+            ) from None
+
+        db.refresh(db_item)
+        if old_image_reference and old_image_reference != image_reference:
+            delete_stored_image(old_image_reference)
+        return db_item
+    finally:
+        image.file.close()
 
 
 def _register_movement_response(

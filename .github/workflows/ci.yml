@@ -95,6 +95,7 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t inventory-api:test ./inventory-api
+          docker build -t inventory-frontend:test ./frontend
 
   compose:
     runs-on: ubuntu-latest
@@ -152,6 +153,33 @@ jobs:
         working-directory: inventory-api
         run: |
           docker compose down -v
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Check frontend types and build
+        working-directory: frontend
+        run: npm run build
+
   publish:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -160,6 +188,7 @@ jobs:
       - test
       - docker
       - compose
+      - frontend
 
     permissions:
       contents: read
@@ -182,8 +211,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata
-        id: meta
+      - name: Extract API Docker metadata
+        id: meta_api
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/devops-inventory
@@ -191,14 +220,32 @@ jobs:
             type=raw,value=latest
             type=sha,format=short
 
-      - name: Build and push multi-architecture Docker image
+      - name: Extract frontend Docker metadata
+        id: meta_frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/devops-inventory-frontend
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: Build and push multi-architecture API image
         uses: docker/build-push-action@v6
         with:
           context: ./inventory-api
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta_api.outputs.tags }}
+          labels: ${{ steps.meta_api.outputs.labels }}
+
+      - name: Build and push multi-architecture frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta_frontend.outputs.tags }}
+          labels: ${{ steps.meta_frontend.outputs.labels }}
 
   deploy:
     runs-on: ubuntu-latest

@@ -65,3 +65,16 @@
   ansible.builtin.debug:
     var: compose_status.stdout_lines
 
+- name: Wait for Inventory API health check
+  become_user: brais
+  ansible.builtin.uri:
+    url: http://127.0.0.1:8000/health
+    method: GET
+    status_code: 200
+    return_content: false
+    timeout: 5
+  register: inventory_api_health
+  until: inventory_api_health.status | default(0) == 200
+  retries: 30
+  delay: 5
+

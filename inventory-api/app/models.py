@@ -55,6 +55,8 @@ class Item(BaseModel):
     code: str = Field(min_length=1, max_length=50)
     name: str = Field(min_length=1, max_length=100)
     unit: str = Field(min_length=1, max_length=20)
+    description: str | None = Field(default=None, max_length=4000)
+    image_path: str | None = None
     active: bool = True
     quantity_available: int = Field(ge=0)
     minimum_stock: int = Field(ge=0)
@@ -71,11 +73,20 @@ class Item(BaseModel):
             raise ValueError("must not be empty or whitespace only")
         return value
 
+    @field_validator("description")
+    @classmethod
+    def normalize_description(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
 
 class ItemCreate(BaseModel):
     code: str = Field(min_length=1, max_length=50)
     name: str = Field(min_length=1, max_length=100)
     unit: str = Field(min_length=1, max_length=20)
+    description: str | None = Field(default=None, max_length=4000)
     active: bool = True
     minimum_stock: int = Field(default=1, ge=0)
 
@@ -89,11 +100,20 @@ class ItemCreate(BaseModel):
             raise ValueError("must not be empty or whitespace only")
         return value
 
+    @field_validator("description")
+    @classmethod
+    def normalize_description(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
 
 class ItemUpdate(BaseModel):
     code: str = Field(min_length=1, max_length=50)
     name: str = Field(min_length=1, max_length=100)
     unit: str = Field(min_length=1, max_length=20)
+    description: str | None = Field(default=None, max_length=4000)
     active: bool
     minimum_stock: int | None = Field(default=None, ge=0)
 
@@ -113,6 +133,14 @@ class ItemUpdate(BaseModel):
         if value is None:
             raise ValueError("must be a non-negative integer")
         return value
+
+    @field_validator("description")
+    @classmethod
+    def normalize_description(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
 
 
 class StockMovementCreate(BaseModel):

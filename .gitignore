@@ -25,6 +25,9 @@ Thumbs.db
 .mypy_cache/
 .ruff_cache/
 
+# Uploaded workshop item images (local development)
+/inventory-api/uploads/
+
 # Build / distribution
 build/
 dist/

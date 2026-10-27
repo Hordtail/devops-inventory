@@ -203,7 +203,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.publish.result == 'success'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.publish.result == 'success' && vars.ENABLE_PRODUCTION_DEPLOY == 'true'
     needs: publish
     permissions:
       contents: read

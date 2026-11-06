@@ -15,7 +15,7 @@ jobs:
     env:
       # Keep CI databases local and separate from any application database.
       DATABASE_URL: postgresql+psycopg://devops:devops@localhost:5432/inventory_ci
-      TEST_DATABASE_URL: postgresql+psycopg://devops:devops@localhost:5432/inventory_test
+      TEST_DATABASE_URL: postgresql+psycopg://devops:devops@127.0.0.1:15432/inventory_test
       STOCK_CONCURRENCY_TEST_DATABASE_URL: postgresql+psycopg://devops:devops@localhost:15432/inventory_stock_concurrency_test
 
     services:

@@ -1,6 +1,6 @@
 ---
 - name: Restart Prometheus
-  become_user: brais
+  become_user: "{{ app_user }}"
   ansible.builtin.command:
     cmd: docker compose -f docker-compose.yml restart prometheus
     chdir: "{{ monitoring_dir }}"

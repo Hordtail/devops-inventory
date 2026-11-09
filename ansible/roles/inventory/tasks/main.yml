@@ -3,23 +3,23 @@
   ansible.builtin.file:
     path: "{{ app_dir }}"
     state: directory
-    owner: brais
-    group: brais
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
     mode: "0755"
 
 - name: Copy production Compose file
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../../inventory-api/docker-compose.prod.yml"
     dest: "{{ app_dir }}/docker-compose.prod.yml"
-    owner: brais
-    group: brais
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
     mode: "0644"
 
 - name: Create application environment file
   ansible.builtin.copy:
     dest: "{{ app_dir }}/.env"
-    owner: brais
-    group: brais
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
     mode: "0600"
     content: |
       POSTGRES_DB={{ postgres_db }}
@@ -29,7 +29,7 @@
       IMAGE_TAG={{ image_tag }}
       
 - name: Log in to GitHub Container Registry
-  become_user: brais
+  become_user: "{{ app_user }}"
   ansible.builtin.shell:
     cmd: |
       echo '{{ vault_ghcr_token }}' | docker login ghcr.io \
@@ -38,7 +38,7 @@
   no_log: true
 
 - name: Pull application images
-  become_user: brais
+  become_user: "{{ app_user }}"
   ansible.builtin.command:
     cmd: docker compose -f docker-compose.prod.yml pull
     chdir: "{{ app_dir }}"
@@ -46,7 +46,7 @@
   changed_when: "'Downloaded' in compose_pull.stdout or 'Pulled' in compose_pull.stdout"
 
 - name: Start application
-  become_user: brais
+  become_user: "{{ app_user }}"
   ansible.builtin.command:
     cmd: docker compose -f docker-compose.prod.yml up -d
     chdir: "{{ app_dir }}"
@@ -54,7 +54,7 @@
   changed_when: "'Started' in compose_up.stdout or 'Recreated' in compose_up.stdout"
 
 - name: Show application status
-  become_user: brais
+  become_user: "{{ app_user }}"
   ansible.builtin.command:
     cmd: docker compose -f docker-compose.prod.yml ps
     chdir: "{{ app_dir }}"
@@ -66,7 +66,7 @@
     var: compose_status.stdout_lines
 
 - name: Wait for Inventory API health check
-  become_user: brais
+  become_user: "{{ app_user }}"
   ansible.builtin.uri:
     url: http://127.0.0.1:8000/health
     method: GET
@@ -79,7 +79,7 @@
   delay: 5
 
 - name: Wait for Inventory frontend health check
-  become_user: brais
+  become_user: "{{ app_user }}"
   ansible.builtin.uri:
     url: http://127.0.0.1:8080/health
     method: GET

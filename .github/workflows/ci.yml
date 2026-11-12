@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - main
@@ -182,7 +184,7 @@ jobs:
 
   publish:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
 
     needs:
       - test
@@ -217,8 +219,9 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/devops-inventory
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,format=short
+            type=ref,event=tag
 
       - name: Extract frontend Docker metadata
         id: meta_frontend
@@ -226,8 +229,9 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/devops-inventory-frontend
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,format=short
+            type=ref,event=tag
 
       - name: Build and push multi-architecture API image
         uses: docker/build-push-action@v6

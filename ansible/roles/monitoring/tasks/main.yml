@@ -20,6 +20,7 @@
       - "/:/host:ro,rslave"
     command:
       - "--path.rootfs=/host"
+      - "--web.listen-address=127.0.0.1:9100"
 - name: Ensure Prometheus directory exists
   ansible.builtin.file:
     path: "{{ monitoring_dir }}/prometheus"

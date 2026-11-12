@@ -16,6 +16,14 @@ It provides a centralized interface to manage inventory records, monitor availab
 
 The project also serves as a practical DevOps implementation, covering containerization, automated testing, image publishing, infrastructure automation and monitoring.
 
+## Security
+
+The application currently has no authentication or authorization. Anyone who can access the application can view and modify the inventory.
+
+Do not expose the application directly to the Internet or allow access by untrusted users. Anyone deploying the project must implement access controls and protective measures appropriate to their environment.
+
+Authentication and authorization are planned as future improvements but have not yet been implemented.
+
 ## Features
 
 ### Inventory management

@@ -4,3 +4,9 @@
   ansible.builtin.command:
     cmd: docker compose -f docker-compose.yml restart prometheus
     chdir: "{{ monitoring_dir }}"
+
+- name: Restart Grafana
+  become_user: "{{ app_user }}"
+  ansible.builtin.command:
+    cmd: docker compose -f docker-compose.yml restart grafana
+    chdir: "{{ monitoring_dir }}"

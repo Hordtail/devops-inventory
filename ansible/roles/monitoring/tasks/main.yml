@@ -7,20 +7,12 @@
     group: "{{ app_user }}"
     mode: "0755"
 
-- name: Run Node Exporter
+- name: Remove standalone Node Exporter container
   become_user: "{{ app_user }}"
   community.docker.docker_container:
     name: node-exporter
-    image: prom/node-exporter:latest
-    state: started
-    restart_policy: unless-stopped
-    network_mode: host
-    pid_mode: host
-    volumes:
-      - "/:/host:ro,rslave"
-    command:
-      - "--path.rootfs=/host"
-      - "--web.listen-address=127.0.0.1:9100"
+    state: absent
+
 - name: Ensure Prometheus directory exists
   ansible.builtin.file:
     path: "{{ monitoring_dir }}/prometheus"
@@ -37,6 +29,23 @@
     group: "{{ app_user }}"
     mode: "0644"
   notify: Restart Prometheus
+
+- name: Ensure Grafana datasource provisioning directory exists
+  ansible.builtin.file:
+    path: "{{ monitoring_dir }}/grafana/provisioning/datasources"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+
+- name: Render Grafana Prometheus datasource
+  ansible.builtin.template:
+    src: grafana-datasource.yml.j2
+    dest: "{{ monitoring_dir }}/grafana/provisioning/datasources/prometheus.yml"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0644"
+  notify: Restart Grafana
 
 - name: Render monitoring Compose file
   ansible.builtin.template:
